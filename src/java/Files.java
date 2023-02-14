@@ -469,4 +469,20 @@ public final class Files {
     }
     return len;
   }
+
+  public static void GetPos(Files_FileDesc file, int[] pos) {
+    if (file.err == OK) {
+      try {
+        pos[0] = (int) file.f.getFilePointer();
+      } catch (IOException e) {
+        file.err = IOERROR;
+      }
+    }
+  }
+
+  public static void SetPos(Files_FileDesc file, int pos) {
+    if (file.err == OK) {
+      file.err = Seek(file, pos);
+    }
+  }
 }

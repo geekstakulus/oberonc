@@ -44,4 +44,6 @@ DEFINITION Files;
   PROCEDURE Delete(name: ARRAY OF CHAR): INTEGER;
   PROCEDURE Seek(file: File; pos: INTEGER): INTEGER;
   PROCEDURE Size(file: File): INTEGER;
+  PROCEDURE GetPos(file: File; VAR pos : INTEGER);
+  PROCEDURE SetPos(file: File; pos : INTEGER);
 END Files.
