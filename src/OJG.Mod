@@ -1,5 +1,5 @@
 (*
-  Copyright 2017 Luca Boasso. All rights reserved.
+  Copyright 2017 Luca Boasso.
   Use of this source code is governed by a MIT
   license that can be found in the LICENSE file.
 *)
@@ -2023,9 +2023,15 @@ MODULE OJG;
     ELSE
       IF (x.mode = OJB.Var) & (x.r > 0) THEN
         z := x;
-        load(x)
+        IF y.mode IN {OJB.Const, OJB.Var} THEN load(x); load(y)
+        ELSE
+          load(y);
+          load(x);
+          ClassFormat.putInsn(topCtx.m, Opcodes.SWAP)
+        END
+      ELSE
+        load(y)
       END ;
-      load(y);
       ClassFormat.putInsn(topCtx.m, op);
       Store(z, x, FALSE)
     END
