@@ -394,8 +394,17 @@ MODULE OJP; (*Oberon compiler for JVM in Oberon-07*)
       ELSIF fct = 15 THEN (*NOT*) CheckInt(x); OJG.Bnot(x)
       ELSIF fct = 16 THEN (*VAL*)
         IF x.mode = OJB.Typ THEN
-          IF ((x.type.form = OJB.Int) OR (x.type.form = OJB.Set)) &
-             ((y.type.form = OJB.Int) OR (y.type.form = OJB.Set)) THEN
+          IF ((x.type = OJB.byteType) OR (x.type = OJB.intType)) &
+            ((y.type = OJB.byteType) OR (y.type = OJB.intType)) THEN
+            (*
+              BYTE and INTEGER are compatible, this is a no-op.
+              The resulting type must match the one of the expression to be
+              converted, as the actual conversion happens elsewhere.
+            *)
+            restyp := y.type;
+          ELSIF ((x.type = OJB.intType) OR (x.type.form = OJB.Set)) &
+            ((y.type = OJB.intType) OR (y.type.form = OJB.Set)) THEN
+            (* A SET is represented as an INTEGER, this is a no-op. *)
             restyp := x.type
           ELSIF (x.type.form = OJB.Real) & (y.type.form = OJB.Int) THEN
             OJG.IntToReal(y);
@@ -1162,8 +1171,8 @@ MODULE OJP; (*Oberon compiler for JVM in Oberon-07*)
       NEW(type);  type.form := OJB.Pointer; type.base := OJB.intType;
       IF sym = OJS.ident THEN
         obj := OJB.thisObj(OJS.id);
-        OJS.Get(sym);
         IF obj # NIL THEN
+          OJS.Get(sym);
           IF (obj.class = OJB.Typ) &
              (obj.type.form IN {OJB.Record, OJB.NoTyp}) THEN
             type.base := obj.type
@@ -1182,7 +1191,8 @@ MODULE OJP; (*Oberon compiler for JVM in Oberon-07*)
         ELSE
           (*enter into list of forward references to be fixed in Declarations*)
           NEW(ptbase); Strings.Copy(OJS.id, ptbase.name); ptbase.type := type;
-           ptbase.next := pbsList; pbsList := ptbase;
+          ptbase.next := pbsList; pbsList := ptbase;
+          OJS.Get(sym);
           (* Temporarily save base type name (needed by OJG.internalName despite
              forward references are not fixed yet) *)
           NEW(type.base); type.base.form := OJB.Int; NEW(tmp);
@@ -1256,7 +1266,18 @@ MODULE OJP; (*Oberon compiler for JVM in Oberon-07*)
           alias := TRUE
         END ;
         IF tp.form = OJB.Record THEN
-          (*check whether this is base of a pointer type; search and fixup*)
+          (*
+            Check whether this object record (obj) is the base of a pointer type
+            that was created (via Type()) before obj was inserted in the symbol
+            table (via InsertObj(id, OJB.Typ))
+            When this happens the base of the pointer type must to be fixed.
+            Examples:
+            1. P is defined before R is defined:
+                P = POINTER TO R;
+                R = RECORD END;
+            2. The type of x is defined before R is fully defined.
+               R = RECORD x: POINTER TO R END;
+          *)
           ptbase := pbsList;
           WHILE ptbase # NIL DO
             IF obj.name = ptbase.name THEN
